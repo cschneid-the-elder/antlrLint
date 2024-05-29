@@ -41,8 +41,13 @@ testtree:
 	java -cp ./class$(SEP).$(SEP)./antlr-4.13.1-complete.jar org.antlr.v4.gui.TestRig ANTLRv4 grammarSpec -tree -tokens < ./testdata/$(n)
 
 test:
+ifeq ($(strip $(c)),)
 	echo `date` $@ $(l) $(p) >> build.log
 	java -jar AntlrLint.jar -lexerGrammar testdata/$(l) -parserGrammar testdata/$(p) -path ./testdata/ 
+else
+	echo `date` $@ $(c) >> build.log
+	java -jar AntlrLint.jar -combinedGrammar testdata/$(c) -path ./testdata/ 
+endif
 
 jar:
 	echo `date` $@ >> build.log

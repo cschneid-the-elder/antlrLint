@@ -2,3 +2,9 @@
 Add recursive search of lexerAltList for actionBlock
 to GrammarListener.
 
+Modified Makefile to allow testing with combined grammars.
+
+Added -verbose option.
+
+Documentation.
+

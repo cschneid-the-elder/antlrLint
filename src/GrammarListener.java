@@ -80,17 +80,6 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 					}
 				}
 			}
-			/*ANTLRv4Parser.LexerElementsContext lesCtx = laCtx.lexerElements();
-			if (lesCtx != null) {
-				if (lesCtx.lexerElement() != null) {
-					for (ANTLRv4Parser.LexerElementContext leCtx: lesCtx.lexerElement()) {
-						if (leCtx.actionBlock() != null) {
-							skipIt = true;
-							break loop;
-						}
-					}
-				}
-			}*/
 		}
 		
 		if (!skipIt) {
@@ -117,7 +106,8 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 	}
 
 	/**
-	Recursive search of LexerAltList looking for an action block.  Return true if found.
+	Recursive search of <code>lexerAltList</code> looking for an <code>actionBlock</code>.  
+	Return true if found.
 	*/
 	private Boolean lexerAltListContainsActionBlock(ANTLRv4Parser.LexerAltListContext altListCtx) {
 		Boolean foundIt = false;
