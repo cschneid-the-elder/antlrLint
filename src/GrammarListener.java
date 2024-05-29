@@ -19,6 +19,10 @@ import org.antlr.v4.runtime.misc.*;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 
+/**
+Collect Lexer rules, Parser rules, and Lexer Tokens of interest.
+*/
+
 public class GrammarListener extends ANTLRv4ParserBaseListener {
 	private ArrayList<String> lexerTokens = new ArrayList<>();
 	private ArrayList<ANTLRv4Parser.LexerRuleSpecContext> lexerRules = new ArrayList<>();
@@ -29,13 +33,21 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 		super();
 	}
 
+	/**
+	Collect Lexer rules, and Lexer Tokens of interest.
+	
+	Tokens of interest do not have any action blocks or lexer commands
+	associated with them, except for the "type" command for which we
+	collect the type being emitted.
+	*/
 	@Override public void enterLexerRuleSpec(ANTLRv4Parser.LexerRuleSpecContext ctx) { 
-		Boolean foundIt = false;
 		Boolean skipIt = false;
+		String typeName = null;
 		
 		lexerRules.add(ctx);
 		ANTLRv4Parser.LexerRuleBlockContext lrbCtx = ctx.lexerRuleBlock();
 		ANTLRv4Parser.LexerAltListContext lalCtx = lrbCtx.lexerAltList();
+
 		loop:
 		for (ANTLRv4Parser.LexerAltContext laCtx: lalCtx.lexerAlt()) {
 			ANTLRv4Parser.LexerCommandsContext lcCtx = laCtx.lexerCommands();
@@ -44,9 +56,11 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 					ANTLRv4Parser.LexerCommandNameContext lcnCtx = lexerCmdCtx.lexerCommandName();
 					//System.out.println(ctx.TOKEN_REF().getSymbol().getText() + " " + lcnCtx.getText());
 					if (lcnCtx.getText().equals("type") && lexerCmdCtx.lexerCommandExpr() != null) {
-						this.lexerTokens.add(lexerCmdCtx.lexerCommandExpr().getText());
-						foundIt = true;
-						break loop;
+						/*
+						If the token has a "type" command associated with it, collect that
+						type instead of the token name.
+						*/
+						typeName = lexerCmdCtx.lexerCommandExpr().getText();
 					}
 					if (lcnCtx.getText().equals("skip")) {
 						skipIt = true;
@@ -66,18 +80,69 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 					}
 				}
 			}
+			/*ANTLRv4Parser.LexerElementsContext lesCtx = laCtx.lexerElements();
+			if (lesCtx != null) {
+				if (lesCtx.lexerElement() != null) {
+					for (ANTLRv4Parser.LexerElementContext leCtx: lesCtx.lexerElement()) {
+						if (leCtx.actionBlock() != null) {
+							skipIt = true;
+							break loop;
+						}
+					}
+				}
+			}*/
 		}
 		
-		if (!foundIt && !skipIt) {
-			this.lexerTokens.add(ctx.TOKEN_REF().getSymbol().getText());
+		if (!skipIt) {
+			skipIt = this.lexerAltListContainsActionBlock(lalCtx);
+		}
+		
+		if (!skipIt) {
+			String s = ctx.TOKEN_REF().getSymbol().getText();
+			if (typeName != null) {
+				s = typeName;
+			}
+			if (!this.lexerTokens.contains(s)) {
+				this.lexerTokens.add(s);
+			}
 		}
 
 	}
 	
+	/**
+	Collect Parser rules.
+	*/
 	@Override public void enterParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
 		this.parserRules.add(ctx);
 	}
 
+	/**
+	Recursive search of LexerAltList looking for an action block.  Return true if found.
+	*/
+	private Boolean lexerAltListContainsActionBlock(ANTLRv4Parser.LexerAltListContext altListCtx) {
+		Boolean foundIt = false;
+
+		loop:
+		for (ANTLRv4Parser.LexerAltContext laCtx: altListCtx.lexerAlt()) {
+			ANTLRv4Parser.LexerElementsContext lesCtx = laCtx.lexerElements();
+			for(ANTLRv4Parser.LexerElementContext leCtx: lesCtx.lexerElement()) {
+				if (leCtx.actionBlock() != null) {
+					foundIt = true;
+					break loop;
+				} else if (leCtx.lexerBlock() != null) {
+					if (leCtx.lexerBlock().lexerAltList() != null) {
+						if (this.lexerAltListContainsActionBlock(leCtx.lexerBlock().lexerAltList())) {
+							foundIt = true;
+							break loop;
+						}
+					}
+				}
+			}
+		}
+		
+		return foundIt;
+	}
+	
 	public ArrayList<String> getLexerTokens() {
 		return this.lexerTokens;
 	}
