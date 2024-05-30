@@ -26,6 +26,7 @@ Collect Lexer rules, Parser rules, and Lexer Tokens of interest.
 public class GrammarListener extends ANTLRv4ParserBaseListener {
 	private ArrayList<String> lexerTokens = new ArrayList<>();
 	private ArrayList<String> lexerChannels = new ArrayList<>();
+	private ArrayList<String> lexerTokensSpecTokens = new ArrayList<>();
 	private ArrayList<ANTLRv4Parser.LexerRuleSpecContext> lexerRules = new ArrayList<>();
 	private ArrayList<ANTLRv4Parser.ParserRuleSpecContext> parserRules = new ArrayList<>();
 
@@ -106,6 +107,9 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 		this.parserRules.add(ctx);
 	}
 
+	/**
+	Collect channel names.
+	*/
 	@Override public void enterChannelsSpec(ANTLRv4Parser.ChannelsSpecContext ctx) {
 		if (ctx.idList() != null) {
 			if (ctx.idList().identifier() != null) {
@@ -113,6 +117,16 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 					if (!this.lexerChannels.contains(idCtx.getText())) {
 						this.lexerChannels.add(idCtx.getText());
 					}
+				}
+			}
+		}
+	}
+
+	@Override public void enterTokensSpec(ANTLRv4Parser.TokensSpecContext ctx) {
+		if (ctx.idList() != null) {
+			if (ctx.idList().identifier() != null) {
+				for (ANTLRv4Parser.IdentifierContext idCtx: ctx.idList().identifier()) {
+					this.lexerTokensSpecTokens.add(idCtx.getText());
 				}
 			}
 		}
@@ -152,6 +166,10 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 	
 	public ArrayList<String> getLexerChannels() {
 		return this.lexerChannels;
+	}
+	
+	public ArrayList<String> getLexerTokensSpecTokens() {
+		return this.lexerTokensSpecTokens;
 	}
 	
 	public ArrayList<ANTLRv4Parser.LexerRuleSpecContext> getLexerRules() {

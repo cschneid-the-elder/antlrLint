@@ -1,6 +1,8 @@
 --2024-05-30--------------------------------------------------------------------
 Add search for unused channels.
 
+Add search for tokensSpec tokens not appearing in any ->type() commands.
+
 --2024-05-29--------------------------------------------------------------------
 Add recursive search of lexerAltList for actionBlock
 to GrammarListener.

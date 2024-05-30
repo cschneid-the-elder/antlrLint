@@ -101,6 +101,28 @@ public class AntlrLint {
 			}
 		}
 
+		if (listener.getLexerTokensSpecTokens().size() > 0) {
+			System.out.println(
+				"searching for " 
+				+ listener.getLexerTokensSpecTokens().size()
+				+ " tokensSpec tokens in " 
+				+ listener.getLexerRules().size()
+				+ " lexer rules"
+				);
+			ArrayList<String> fallenLeafTokensSpecTokens = 
+				searchForFallenLeafTokensSpecTokens(
+					listener.getLexerRules()
+					, listener.getLexerTokensSpecTokens());
+			if (fallenLeafTokensSpecTokens.size() > 0) {
+				System.out.println("Lexer tokensSpec Tokens with no ->type() command referencing them...");
+				for (String s: fallenLeafTokensSpecTokens) {
+					System.out.println(s);
+				}
+			} else {
+				System.out.println("All Lexer tokensSpec Tokens are referenced in at least one ->type() command");
+			}
+		}
+
 		return;
 	}
 
@@ -153,7 +175,9 @@ public class AntlrLint {
 	Search for channels which were specified in a <code>prequelConstruct</code> but are
 	never used in a <code>lexerCommand</code>.  Recursively checking for <code>lexerCommand</code>s 
 	in <code>lexerCommands</code> in <code>lexerAlt</code>s in <code>lexerAltList</code>s is
-	not necessary as a <code>lexerCommand</code> can only be specified once per <code>lexerRuleSpec</code>.
+	not necessary as a <code>lexerCommand</code> can only be specified once per <code>lexerRuleSpec</code>
+	as per the "Lexer Commands" section on page 283 of _The Definitive ANTLR 4 Reference_
+	ISBN 978-1-93435-699-9.
 	*/
 	private static ArrayList<String> searchForFallenLeafChannels(
 		ArrayList<ANTLRv4Parser.LexerRuleSpecContext> lexerRules
@@ -189,6 +213,45 @@ public class AntlrLint {
 		}
 		
 		return fallenLeafChannels;
+	}
+
+	/**
+	Search all <code>lexerRuleSpec</code>s for <code>->type()</code> commands referencing tokens
+	specified in a tokensSpec and return a list of those not found.  These are potential cruft.
+	*/
+	private static ArrayList<String> searchForFallenLeafTokensSpecTokens(
+		ArrayList<ANTLRv4Parser.LexerRuleSpecContext> lexerRules
+		, ArrayList<String> lexerTokensSpecTokens) {
+		
+		ArrayList<String> fallenLeafTokensSpecTokens = new ArrayList<>();
+		for (String s: lexerTokensSpecTokens) {
+			Boolean foundItInLexerRule = false;
+			if (verbose) System.out.println("searching for " + s);
+			lexerLoop:
+			for (ANTLRv4Parser.LexerRuleSpecContext lrsCtx: lexerRules) {
+				ANTLRv4Parser.LexerRuleBlockContext lrbCtx = lrsCtx.lexerRuleBlock();
+				ANTLRv4Parser.LexerAltListContext lalCtx = lrbCtx.lexerAltList();
+				for (ANTLRv4Parser.LexerAltContext laCtx: lalCtx.lexerAlt()) {
+					ANTLRv4Parser.LexerCommandsContext lcCtx = laCtx.lexerCommands();
+					if (lcCtx != null) {
+						for (ANTLRv4Parser.LexerCommandContext lexerCmdCtx: lcCtx.lexerCommand()) {
+							ANTLRv4Parser.LexerCommandNameContext lcnCtx = lexerCmdCtx.lexerCommandName();
+							if (lcnCtx.getText().equals("type") && lexerCmdCtx.lexerCommandExpr() != null) {
+								if (lexerCmdCtx.lexerCommandExpr().getText().equals(s)) {
+									foundItInLexerRule = true;
+									break lexerLoop;
+								}
+							}
+						}
+					}
+				}
+			}
+			if (!foundItInLexerRule) {
+				fallenLeafTokensSpecTokens.add(s);
+			}
+		}
+		
+		return fallenLeafTokensSpecTokens;
 	}
 
 	/**
