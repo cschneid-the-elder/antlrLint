@@ -8,6 +8,17 @@ A list of tokens to which no rule refers is written to stdout.  This
 list does not include tokens with action blocks or lexer commands,
 as the intent is to locate cruft and such tokens likely have a use.
 
+A list of channels in a `channels{}` channelsSpec to which no rule 
+refers is written to stdout.
+
+A list of tokens in a `tokens {}` tokensSpec which do not appear in 
+any `->type()` commands is written to stdout.
+
+Please keep in mind that these are only leading indicators that something
+_may_ be ahoo in your grammar.  If you have overridden the superclass of
+the Lexer or have `actionBlock`s that use the ANTLR runtime this application 
+is not going to find those references.
+
     usage: AntlrLint [-combinedGrammar <arg>] [-help] [-lexerGrammar <arg>]
            [-parserGrammar <arg>] [-path <arg>] [-verbose]
      -combinedGrammar <arg>   path and file name of a single combined grammar
