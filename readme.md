@@ -8,6 +8,8 @@ A list of tokens to which no rule refers is written to stdout.  This
 list does not include tokens with action blocks or lexer commands,
 as the intent is to locate cruft and such tokens likely have a use.
 
+A list of channels to which no rule refers is written to stdout.
+
     usage: AntlrLint [-combinedGrammar <arg>] [-help] [-lexerGrammar <arg>]
            [-parserGrammar <arg>] [-path <arg>] [-verbose]
      -combinedGrammar <arg>   path and file name of a single combined grammar

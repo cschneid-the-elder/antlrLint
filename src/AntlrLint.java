@@ -54,7 +54,6 @@ public class AntlrLint {
 			lexAndParseGrammar(combinedFileName, listener);
 		}
 	
-		ArrayList<String> orphanTokens = new ArrayList<>();
 		System.out.println(
 			"searching for " 
 			+ listener.getLexerTokens().size()
@@ -64,12 +63,63 @@ public class AntlrLint {
 			+ listener.getParserRules().size()
 			+ " parser rules"
 			);
-		for (String s: listener.getLexerTokens()) {
+
+		ArrayList<String> fallenLeafTokens = 
+			searchForFallenLeafTokens(
+				listener.getLexerRules()
+				, listener.getParserRules()
+				, listener.getLexerTokens());
+
+		if (fallenLeafTokens.size() > 0) {
+			System.out.println("Lexer Tokens with no rule referencing them...");
+			for (String s: fallenLeafTokens) {
+				System.out.println(s);
+			}
+		} else {
+			System.out.println("All Lexer Tokens are referenced in at least one rule");
+		}
+		
+		if (listener.getLexerChannels().size() > 0) {
+			System.out.println(
+				"searching for " 
+				+ listener.getLexerChannels().size()
+				+ " channels in " 
+				+ listener.getLexerRules().size()
+				+ " lexer rules"
+				);
+			ArrayList<String> fallenLeafChannels = 
+				searchForFallenLeafChannels(
+					listener.getLexerRules()
+					, listener.getLexerChannels());
+			if (fallenLeafChannels.size() > 0) {
+				System.out.println("Lexer Channels with no rule referencing them...");
+				for (String s: fallenLeafChannels) {
+					System.out.println(s);
+				}
+			} else {
+				System.out.println("All Lexer Channels are referenced in at least one rule");
+			}
+		}
+
+		return;
+	}
+
+	/**
+	Search all <code>lexerRuleSpec</code>s and <code>parserRuleSpec</code>s for tokens
+	and return a list of those not found.  These are potential cruft.
+	*/
+	private static ArrayList<String> searchForFallenLeafTokens(
+		ArrayList<ANTLRv4Parser.LexerRuleSpecContext> lexerRules
+		, ArrayList<ANTLRv4Parser.ParserRuleSpecContext> parserRules
+		, ArrayList<String> lexerTokens) {
+		
+		ArrayList<String> fallenLeafTokens = new ArrayList<>();
+		for (String s: lexerTokens) {
 			Boolean foundItInLexerRule = false;
 			Boolean foundItInParserRule = false;
-			if (verbose) System.out.println("searching for " +s);
+			if (verbose) System.out.println("searching for " + s);
 			lexerLoop:
-			for (ANTLRv4Parser.LexerRuleSpecContext lrsCtx: listener.getLexerRules()) {
+			for (ANTLRv4Parser.LexerRuleSpecContext lrsCtx: lexerRules) {
 				ANTLRv4Parser.LexerRuleBlockContext lrbCtx = lrsCtx.lexerRuleBlock();
 				ANTLRv4Parser.LexerAltListContext lalCtx = lrbCtx.lexerAltList();
 				foundItInLexerRule = searchLexerAltList(lalCtx, s, lrsCtx.TOKEN_REF().getSymbol().getText());
@@ -79,7 +129,7 @@ public class AntlrLint {
 			}
 			if (!foundItInLexerRule) {
 				parserLoop:
-				for (ANTLRv4Parser.ParserRuleSpecContext prsCtx: listener.getParserRules()) {
+				for (ANTLRv4Parser.ParserRuleSpecContext prsCtx: parserRules) {
 					ANTLRv4Parser.RuleBlockContext rbCtx = prsCtx.ruleBlock();
 					ANTLRv4Parser.RuleAltListContext ralCtx = rbCtx.ruleAltList();
 					for (ANTLRv4Parser.LabeledAltContext laCtx: ralCtx.labeledAlt()) {
@@ -91,21 +141,54 @@ public class AntlrLint {
 					}
 				}
 				if (!foundItInLexerRule && !foundItInParserRule) {
-					orphanTokens.add(s);
+					fallenLeafTokens.add(s);
 				}
 			}
 		}
+		
+		return fallenLeafTokens;
+	}
 
-		if (orphanTokens.size() > 0) {
-			System.out.println("Lexer Tokens with no rule referencing them...");
-			for (String s: orphanTokens) {
-				System.out.println(s);
+	/**
+	Search for channels which were specified in a <code>prequelConstruct</code> but are
+	never used in a <code>lexerCommand</code>.  Recursively checking for <code>lexerCommand</code>s 
+	in <code>lexerCommands</code> in <code>lexerAlt</code>s in <code>lexerAltList</code>s is
+	not necessary as a <code>lexerCommand</code> can only be specified once per <code>lexerRuleSpec</code>.
+	*/
+	private static ArrayList<String> searchForFallenLeafChannels(
+		ArrayList<ANTLRv4Parser.LexerRuleSpecContext> lexerRules
+		, ArrayList<String> lexerChannels) {
+		
+		ArrayList<String> fallenLeafChannels = new ArrayList<>();
+		for (String s: lexerChannels) {
+			Boolean foundChannel = false;
+			if (verbose) System.out.println("searching for " +s );
+			lexerLoop:
+			for (ANTLRv4Parser.LexerRuleSpecContext lrsCtx: lexerRules) {
+				ANTLRv4Parser.LexerRuleBlockContext lrbCtx = lrsCtx.lexerRuleBlock();
+				ANTLRv4Parser.LexerAltListContext lalCtx = lrbCtx.lexerAltList();
+				for (ANTLRv4Parser.LexerAltContext laCtx: lalCtx.lexerAlt()) {
+					ANTLRv4Parser.LexerCommandsContext lcCtx = laCtx.lexerCommands();
+					if (lcCtx != null) {
+						for (ANTLRv4Parser.LexerCommandContext lexerCmdCtx: lcCtx.lexerCommand()) {
+							ANTLRv4Parser.LexerCommandNameContext lcnCtx = lexerCmdCtx.lexerCommandName();
+							if (lcnCtx.getText().equals("channel") && lexerCmdCtx.lexerCommandExpr() != null) {
+								if (lexerCmdCtx.lexerCommandExpr().getText().equals(s)) {
+									foundChannel = true;
+									if (verbose) System.out.println("\tfound in lexer rule " + lrsCtx.TOKEN_REF().getSymbol().getText());
+									break lexerLoop;
+								}
+							}
+						}
+					}
+				}
 			}
-		} else {
-			System.out.println("All Lexer Tokens are referenced in at least one rule");
+			if (!foundChannel) {
+				fallenLeafChannels.add(s);
+			}
 		}
 		
-		return;
+		return fallenLeafChannels;
 	}
 
 	/**
