@@ -2,7 +2,7 @@ Attempt at a Lint-like function for ANTLR4 grammars.
 
 Grammars with thousands of rules pose a challenge as maintenance 
 deprecates tokens.  This is an attempt to automate, or at least
-semi-automate "weeding" such large-ish grammars.
+semi-automate, "weeding" such large-ish grammars.
 
 A list of tokens to which no rule refers is written to stdout.  This
 list does not include tokens with action blocks or lexer commands,
@@ -13,6 +13,11 @@ refers is written to stdout.
 
 A list of tokens in a `tokens {}` tokensSpec which do not appear in 
 any `->type()` commands is written to stdout.
+
+Grammars specified in `import` statements are processed.
+
+A list of Lexer `mode`s not referenced in any `->pushMode()`, 
+`->popMode()`, or `mode()` command is written to stdout.
 
 Please keep in mind that these are only leading indicators that something
 _may_ be ahoo in your grammar.  If you have overridden the superclass of
