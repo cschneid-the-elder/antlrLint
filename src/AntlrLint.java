@@ -133,6 +133,28 @@ public class AntlrLint {
 			}
 		}
 
+		if (listener.getModeSpecs().size() > 0) {
+			System.out.println(
+				"searching for " 
+				+ listener.getModeSpecs().size()
+				+ " modeSpecs in " 
+				+ listener.getLexerRules().size()
+				+ " lexer rules"
+				);
+			ArrayList<String> fallenLeafModeSpecs = 
+				searchForFallenLeafModeSpecs(
+					listener.getLexerRules()
+					, listener.getModeSpecs());
+			if (fallenLeafModeSpecs.size() > 0) {
+				System.out.println("Lexer modeSpecs with no ->[push|pop]mode() command referencing them...");
+				for (String s: fallenLeafModeSpecs) {
+					System.out.println(s);
+				}
+			} else {
+				System.out.println("All modeSpecs are referenced in at least one ->[push|pop]mode() command");
+			}
+		}
+
 		return;
 	}
 
@@ -196,7 +218,7 @@ public class AntlrLint {
 		ArrayList<String> fallenLeafChannels = new ArrayList<>();
 		for (String s: lexerChannels) {
 			Boolean foundChannel = false;
-			if (verbose) System.out.println("searching for " +s );
+			if (verbose) System.out.println("searching for " + s );
 			lexerLoop:
 			for (ANTLRv4Parser.LexerRuleSpecContext lrsCtx: lexerRules) {
 				ANTLRv4Parser.LexerRuleBlockContext lrbCtx = lrsCtx.lexerRuleBlock();
@@ -262,6 +284,55 @@ public class AntlrLint {
 		}
 		
 		return fallenLeafTokensSpecTokens;
+	}
+
+	/**
+	Search for Lexer modes which were specified in a <code>modeSpec</code> but are
+	never used in a <code>lexerCommand</code>.  Recursively checking for <code>lexerCommand</code>s 
+	in <code>lexerCommands</code> in <code>lexerAlt</code>s in <code>lexerAltList</code>s is
+	not necessary as a <code>lexerCommand</code> can only be specified once per <code>lexerRuleSpec</code>
+	as per the "Lexer Commands" section on page 283 of _The Definitive ANTLR 4 Reference_
+	ISBN 978-1-93435-699-9.
+	*/
+	private static ArrayList<String> searchForFallenLeafModeSpecs(
+		ArrayList<ANTLRv4Parser.LexerRuleSpecContext> lexerRules
+		, ArrayList<String> modeSpecs) {
+		
+		ArrayList<String> modeCommands = new ArrayList<>();
+		modeCommands.add("mode");
+		modeCommands.add("pushMode");
+		modeCommands.add("popMode");
+		
+		ArrayList<String> fallenLeafModeSpecs = new ArrayList<>();
+		for (String s: modeSpecs) {
+			Boolean foundModeSpec = false;
+			if (verbose) System.out.println("searching for " + s );
+			lexerLoop:
+			for (ANTLRv4Parser.LexerRuleSpecContext lrsCtx: lexerRules) {
+				ANTLRv4Parser.LexerRuleBlockContext lrbCtx = lrsCtx.lexerRuleBlock();
+				ANTLRv4Parser.LexerAltListContext lalCtx = lrbCtx.lexerAltList();
+				for (ANTLRv4Parser.LexerAltContext laCtx: lalCtx.lexerAlt()) {
+					ANTLRv4Parser.LexerCommandsContext lcCtx = laCtx.lexerCommands();
+					if (lcCtx != null) {
+						for (ANTLRv4Parser.LexerCommandContext lexerCmdCtx: lcCtx.lexerCommand()) {
+							ANTLRv4Parser.LexerCommandNameContext lcnCtx = lexerCmdCtx.lexerCommandName();
+							if (modeCommands.contains(lcnCtx.getText()) && lexerCmdCtx.lexerCommandExpr() != null) {
+								if (lexerCmdCtx.lexerCommandExpr().getText().equals(s)) {
+									foundModeSpec = true;
+									if (verbose) System.out.println("\tfound in lexer rule " + lrsCtx.TOKEN_REF().getSymbol().getText());
+									break lexerLoop;
+								}
+							}
+						}
+					}
+				}
+			}
+			if (!foundModeSpec) {
+				fallenLeafModeSpecs.add(s);
+			}
+		}
+		
+		return fallenLeafModeSpecs;
 	}
 
 	/**

@@ -1,6 +1,9 @@
 --2024-05-31--------------------------------------------------------------------
 Delegate grammars specified on import statments are now processed.
 
+Search for Lexer modes not referenced in any ->pushMode(), ->popMode(), 
+or ->mode command .
+
 --2024-05-30--------------------------------------------------------------------
 Add search for unused channels.
 

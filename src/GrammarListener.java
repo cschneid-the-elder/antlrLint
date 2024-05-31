@@ -28,6 +28,7 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 	private ArrayList<String> lexerChannels = new ArrayList<>();
 	private ArrayList<String> lexerTokensSpecTokens = new ArrayList<>();
 	private ArrayList<String> delegateGrammars = new ArrayList<>();
+	private ArrayList<String> modeSpecs = new ArrayList<>();
 	private ArrayList<ANTLRv4Parser.LexerRuleSpecContext> lexerRules = new ArrayList<>();
 	private ArrayList<ANTLRv4Parser.ParserRuleSpecContext> parserRules = new ArrayList<>();
 
@@ -78,6 +79,10 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 						break loop;
 					}
 					if (lcnCtx.getText().equals("popMode")) {
+						skipIt = true;
+						break loop;
+					}
+					if (lcnCtx.getText().equals("mode")) {
 						skipIt = true;
 						break loop;
 					}
@@ -148,6 +153,15 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 	}
 
 	/**
+	Collect names of modes.
+	*/
+	@Override public void enterModeSpec(ANTLRv4Parser.ModeSpecContext ctx) {
+		if (ctx.identifier() != null) {
+			this.modeSpecs.add(ctx.identifier().getText());
+		}
+	}
+
+	/**
 	Recursive search of <code>lexerAltList</code> looking for an <code>actionBlock</code>.  
 	Return true if found.
 	*/
@@ -191,6 +205,10 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 		return this.delegateGrammars;
 	}
 	
+	public ArrayList<String> getModeSpecs() {
+		return this.modeSpecs;
+	}
+
 	public ArrayList<ANTLRv4Parser.LexerRuleSpecContext> getLexerRules() {
 		return this.lexerRules;
 	}
