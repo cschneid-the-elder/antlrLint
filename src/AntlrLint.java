@@ -53,6 +53,16 @@ public class AntlrLint {
 		} else {
 			lexAndParseGrammar(combinedFileName, listener);
 		}
+
+		/*
+		Each grammar file may contain an <code>import</code> statement, which
+		gives us another grammar file to process.
+		*/
+		ListIterator<String> iterator = listener.getDelegateGrammars().listIterator();
+		while (iterator.hasNext()) {
+			StringBuffer grammarFile = new StringBuffer(pathToFile).append(iterator.next()).append(".g4");
+			lexAndParseGrammar(grammarFile.toString(), listener);
+		}
 	
 		System.out.println(
 			"searching for " 

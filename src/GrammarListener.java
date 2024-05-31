@@ -27,6 +27,7 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 	private ArrayList<String> lexerTokens = new ArrayList<>();
 	private ArrayList<String> lexerChannels = new ArrayList<>();
 	private ArrayList<String> lexerTokensSpecTokens = new ArrayList<>();
+	private ArrayList<String> delegateGrammars = new ArrayList<>();
 	private ArrayList<ANTLRv4Parser.LexerRuleSpecContext> lexerRules = new ArrayList<>();
 	private ArrayList<ANTLRv4Parser.ParserRuleSpecContext> parserRules = new ArrayList<>();
 
@@ -122,12 +123,26 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 		}
 	}
 
+	/**
+	Collect names of tokens specified in a <code>tokens{}</code> tokensSpec.
+	*/
 	@Override public void enterTokensSpec(ANTLRv4Parser.TokensSpecContext ctx) {
 		if (ctx.idList() != null) {
 			if (ctx.idList().identifier() != null) {
 				for (ANTLRv4Parser.IdentifierContext idCtx: ctx.idList().identifier()) {
 					this.lexerTokensSpecTokens.add(idCtx.getText());
 				}
+			}
+		}
+	}
+
+	/**
+	Collect names of imported grammars.
+	*/
+	@Override public void enterDelegateGrammar(ANTLRv4Parser.DelegateGrammarContext ctx) {
+		if (ctx.identifier() != null) {
+			for (ANTLRv4Parser.IdentifierContext idCtx: ctx.identifier()) {
+				delegateGrammars.add(idCtx.getText());
 			}
 		}
 	}
@@ -170,6 +185,10 @@ public class GrammarListener extends ANTLRv4ParserBaseListener {
 	
 	public ArrayList<String> getLexerTokensSpecTokens() {
 		return this.lexerTokensSpecTokens;
+	}
+	
+	public ArrayList<String> getDelegateGrammars() {
+		return this.delegateGrammars;
 	}
 	
 	public ArrayList<ANTLRv4Parser.LexerRuleSpecContext> getLexerRules() {
